@@ -1,6 +1,7 @@
 
 from fileinput import filename
-import os, sys
+import os
+import sys
 import numpy as np
 import scipy.io
 
@@ -13,12 +14,12 @@ from sklearn.pipeline import Pipeline
 from sklearn.cluster import SpectralClustering
 from sklearn import cluster
 
-#from sknetwork.embedding import PCA, GSVD
+# from sknetwork.embedding import PCA, GSVD
 from sknetwork.clustering import get_modularity, Louvain
 
 import networkx.algorithms.community as nx_comm
 
-from src.estimators import SGLkComponents, NGL, GLasso, HeavyTailkGL, EllipticalGL
+from graphlearn.estimators import SGLkComponents, NGL, GLasso, HeavyTailkGL, EllipticalGL
 
 if __name__ == "__main__":
 
@@ -50,33 +51,34 @@ if __name__ == "__main__":
 
     # Estimators compared
     GLasso = Pipeline(steps=[
-            ('Centering', pre_processing),
-            ('Graph Estimation', GLasso(alpha=0.05)),
-            #('Clustering', louvain(modularity='Newman', n_aggregations=n_clusters))
-        ]
+        ('Centering', pre_processing),
+        ('Graph Estimation', GLasso(alpha=0.05)),
+        # ('Clustering', louvain(modularity='Newman', n_aggregations=n_clusters))
+    ]
     )
     SGL = Pipeline(steps=[
         ('Centering', pre_processing),
         ('Graph Estimation', SGLkComponents(
             None, maxiter=1000, record_objective=True, record_weights=True,
-            beta = 0.5, k=8, S_estimation_args=[1./3], verbosity=1)),
-        #('Clustering', louvain(modularity='Newman', n_aggregations=n_clusters))
-        ]
+            beta=0.5, k=8, S_estimation_args=[1./3], verbosity=1)),
+        # ('Clustering', louvain(modularity='Newman', n_aggregations=n_clusters))
+    ]
     )
-    
+
     NGL = Pipeline(steps=[
         ('Centering', pre_processing),
-        ('Graph Estimation', NGL(S_estimation_args=[1./3], maxiter=100, record_objective=True)),
-        #('Clustering', louvain(shuffle_nodes=True, n_aggregations=n_clusters))
-        ]
+        ('Graph Estimation', NGL(S_estimation_args=[
+         1./3], maxiter=100, record_objective=True)),
+        # ('Clustering', louvain(shuffle_nodes=True, n_aggregations=n_clusters))
+    ]
     )
 
     StudentGL = Pipeline(steps=[
         ('Centering', pre_processing),
         ('Graph Estimation', HeavyTailkGL(
             heavy_type='student', k=8, nu=1e3)),
-        #('Clustering', louvain(shuffle_nodes=True, n_aggregations=n_clusters))
-        ]
+        # ('Clustering', louvain(shuffle_nodes=True, n_aggregations=n_clusters))
+    ]
     )
 
     EGFM = Pipeline(steps=[
@@ -84,18 +86,18 @@ if __name__ == "__main__":
         ('Graph Estimation', EllipticalGL(geometry="factor", k=10,
                                           lambda_seq=[10],
                                           df=5)),
-        #('Clustering', louvain(shuffle_nodes=True, n_aggregations=n_clusters))
-        ]
+        # ('Clustering', louvain(shuffle_nodes=True, n_aggregations=n_clusters))
+    ]
     )
-    #Modularity=0.8
+    # Modularity=0.8
 
     GGFM = Pipeline(steps=[
         ('Centering', pre_processing),
         ('Graph Estimation', EllipticalGL(geometry="factor", k=10,
                                           lambda_seq=[3.5],
                                           df=1e3)),
-        #('Clustering', louvain(shuffle_nodes=True, n_aggregations=n_clusters))
-        ]
+        # ('Clustering', louvain(shuffle_nodes=True, n_aggregations=n_clusters))
+    ]
     )
     # Modularity=0.79
 
@@ -104,8 +106,8 @@ if __name__ == "__main__":
         ('Graph Estimation', EllipticalGL(geometry="SPD", k=10,
                                           lambda_seq=[0, 0.1, 0.2],
                                           df=5)),
-        #('Clustering', louvain(shuffle_nodes=True, n_aggregations=n_clusters))
-        ]
+        # ('Clustering', louvain(shuffle_nodes=True, n_aggregations=n_clusters))
+    ]
     )
     # Modularity=0.44
 
@@ -114,11 +116,10 @@ if __name__ == "__main__":
         ('Graph Estimation', EllipticalGL(geometry="SPD",
                                           lambda_seq=[0.075],
                                           df=1e3)),
-        #('Clustering', louvain(shuffle_nodes=True, n_aggregations=n_clusters))
-        ]
+        # ('Clustering', louvain(shuffle_nodes=True, n_aggregations=n_clusters))
+    ]
     )
     # Modularity=0.44
-
 
     list_names = ['GLasso', 'SGL', 'NGL', 'StudentGL',
                   'GGM', 'EGM', 'GGFM', 'EGFM']
@@ -136,22 +137,24 @@ if __name__ == "__main__":
         # Get adjacency matrix to get the graph and clustered labels to compute modularity
         precision = pipeline['Graph Estimation'].precision_
         adjacency = np.abs(precision)
-        if name=='GGFM' or name=='EGFM':
+        if name == 'GGFM' or name == 'EGFM':
             tol = 1e-2
-            adjacency[np.abs(adjacency)<tol] = 0.
-        elif name=='GGM' or name=='EGM' or name=='StudentGL':
+            adjacency[np.abs(adjacency) < tol] = 0.
+        elif name == 'GGM' or name == 'EGM' or name == 'StudentGL':
             tol = 1e-1
-            adjacency[np.abs(adjacency)<tol] = 0.
+            adjacency[np.abs(adjacency) < tol] = 0.
         else:
             pass
         np.fill_diagonal(adjacency, 0.)
-        
+
         graph = nx.from_numpy_array(adjacency)
         graph = nx.relabel_nodes(graph, dict_names)
-        
+
         print('Graph statistics:')
-        print('Nodes: ', graph.number_of_nodes(), 'Edges: ', graph.number_of_edges() )
-        print('Modularity: ', nx_comm.modularity(graph, nx_comm.greedy_modularity_communities(graph)))
+        print('Nodes: ', graph.number_of_nodes(),
+              'Edges: ', graph.number_of_edges())
+        print('Modularity: ', nx_comm.modularity(
+            graph, nx_comm.greedy_modularity_communities(graph)))
 
         print("----------------------------------------------------------")
         print('\n\n')
@@ -160,11 +163,11 @@ if __name__ == "__main__":
         print(cluster_seq)
 
         # Put uniform weights
-        for u,v,d in graph.edges(data=True):
+        for u, v, d in graph.edges(data=True):
             d['weight'] = 1.
 
         nt = Network(height='900px', width='100%')
-        #nt.show_buttons()
+        # nt.show_buttons()
         nt.set_options("""
             var options = {
             "nodes": {
@@ -214,4 +217,3 @@ if __name__ == "__main__":
         nt.show(f'animaldata_{name}.html')
 
     plt.show()
-
