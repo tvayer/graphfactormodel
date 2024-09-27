@@ -154,7 +154,7 @@ class FactorModel(RiemannianSubmanifold):
         # return self.proj(point_b, tangent_vector_a)
 
     def transport(self, point_a, point_b, tangent_vector_a):  # we can for sure do much better
-        return self._projection_tangent(point_b, tangent_vector_a)
+        return self.projection(point_b, tangent_vector_a)
 
 
 class FactorModel2SPD(MappingBetweenManifolds):
